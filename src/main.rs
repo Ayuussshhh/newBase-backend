@@ -157,9 +157,6 @@ async fn init_database_pool() -> anyhow::Result<deadpool_postgres::Pool> {
     let host_str = if !hosts.is_empty() {
         match &hosts[0] {
             tokio_postgres::config::Host::Tcp(s) => s.clone(),
-            tokio_postgres::config::Host::Unix(_) => {
-                return Err(anyhow::anyhow!("Unix socket connections are not supported"));
-            }
         }
     } else {
         return Err(anyhow::anyhow!("No host in DATABASE_URL"));

@@ -85,7 +85,7 @@ pub async fn create_snapshot(
     State(state): State<SharedState>,
     Extension(claims): Extension<Claims>,
     Path(connection_id): Path<Uuid>,
-    Json(req): Json<CreateSnapshotRequest>,
+    Json(_req): Json<CreateSnapshotRequest>,
 ) -> Result<Json<SnapshotResponse>, AppError> {
     // Get the connection
     let pool = state.connections.get_pool(connection_id).await?;

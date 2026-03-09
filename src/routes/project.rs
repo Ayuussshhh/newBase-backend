@@ -297,16 +297,27 @@ pub async fn save_connection(
     let client = state.db_pool.get().await
         .map_err(|e| AppError::Internal(format!("Failed to get database connection: {}", e)))?;
 
-    // Insert saved connection into database
+    // Encrypt the connection string using pgcrypto
+    // Use a simple encryption key (in production, use environment variable)
+    let encryption_key = std::env::var("CONNECTION_ENCRYPTION_KEY")
+        .unwrap_or_else(|_| "default-encryption-key".to_string());
+    
+    // Insert saved connection into database with encryption
     let row = client.query_one(
-        "INSERT INTO saved_connections (project_id, connection_string, database_type, connection_name, created_at, updated_at)
-         VALUES ($1, $2, $3, $4, $5, $6)
-         RETURNING id, project_id, connection_string, database_type, connection_name, created_at, updated_at",
+        "INSERT INTO saved_connections (project_id, name, connection_string_encrypted, connection_type, environment, is_active, last_tested, test_status, created_by, created_at, updated_at)
+         VALUES ($1, $2, pgp_sym_encrypt($3, $4)::bytea, $5, $6, $7, $8, $9, $10, $11, $12)
+         RETURNING id, project_id, name, connection_type, environment, is_active, last_tested, test_status, created_by, created_at, updated_at",
         &[
             &project_id,
-            &payload.connection_string,
-            &payload.connection_type,
             &payload.name,
+            &payload.connection_string,
+            &encryption_key,
+            &payload.connection_type,
+            &payload.environment,
+            &false,  // is_active
+            &None::<chrono::DateTime<Utc>>,  // last_tested
+            &None::<String>,  // test_status
+            &_user_id,  // created_by
             &Utc::now(),
             &Utc::now(),
         ],
@@ -319,14 +330,14 @@ pub async fn save_connection(
     let connection = SavedConnection {
         id: row.get("id"),
         project_id: row.get("project_id"),
-        name: row.get("connection_name"),
+        name: row.get("name"),
         connection_string_encrypted: vec![],
-        connection_type: row.get("database_type"),
-        environment: "production".to_string(),
-        is_active: false,
-        last_tested: None,
-        test_status: None,
-        created_by: _user_id,
+        connection_type: row.get("connection_type"),
+        environment: row.get("environment"),
+        is_active: row.get("is_active"),
+        last_tested: row.get("last_tested"),
+        test_status: row.get("test_status"),
+        created_by: row.get("created_by"),
         created_at: row.get("created_at"),
         updated_at: row.get("updated_at"),
     };
