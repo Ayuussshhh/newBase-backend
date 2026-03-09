@@ -376,7 +376,7 @@ pub async fn list_connections(
 
     // Fetch all connections for the project
     let rows = client.query(
-        "SELECT id, project_id, connection_name, database_type, created_at, updated_at
+        "SELECT id, project_id, name, connection_type, environment, is_active, last_tested, test_status, created_at, updated_at
          FROM saved_connections
          WHERE project_id = $1
          ORDER BY created_at DESC",
@@ -391,12 +391,12 @@ pub async fn list_connections(
         ConnectionDetails {
             id: row.get("id"),
             project_id: row.get("project_id"),
-            name: row.get("connection_name"),
-            connection_type: row.get("database_type"),
-            environment: "production".to_string(),
-            is_active: false,
-            last_tested: None,
-            test_status: None,
+            name: row.get("name"),
+            connection_type: row.get("connection_type"),
+            environment: row.get("environment"),
+            is_active: row.get("is_active"),
+            last_tested: row.get("last_tested"),
+            test_status: row.get("test_status"),
             created_at: row.get("created_at"),
             updated_at: row.get("updated_at"),
         }
@@ -482,7 +482,7 @@ pub async fn activate_connection(
 
     // Fetch the connection
     let row = client.query_opt(
-        "SELECT id, project_id, connection_name, database_type, created_at, updated_at
+        "SELECT id, project_id, name, connection_type, environment, is_active, last_tested, test_status, created_at, updated_at
          FROM saved_connections
          WHERE id = $1 AND project_id = $2",
         &[&connection_id, &project_id],
@@ -493,12 +493,12 @@ pub async fn activate_connection(
     let connection = ConnectionDetails {
         id: row.get("id"),
         project_id: row.get("project_id"),
-        name: row.get("connection_name"),
-        connection_type: row.get("database_type"),
-        environment: "production".to_string(),
-        is_active: true,
-        last_tested: None,
-        test_status: None,
+        name: row.get("name"),
+        connection_type: row.get("connection_type"),
+        environment: row.get("environment"),
+        is_active: row.get("is_active"),
+        last_tested: row.get("last_tested"),
+        test_status: row.get("test_status"),
         created_at: row.get("created_at"),
         updated_at: row.get("updated_at"),
     };
